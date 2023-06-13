@@ -20,7 +20,7 @@ def init():
 
     # Flan-T5 version, if changed be sure to update in download.py too
     tokenizer = AutoTokenizer.from_pretrained("tiiuae/falcon-7b-instruct")
-    model = AutoModelForCausalLM.from_pretrained("tiiuae/falcon-7b-instruct")
+    model = AutoModelForCausalLM.from_pretrained("tiiuae/falcon-7b-instruct", trust_remote_code=True)
     model.half().to(torch.cuda.current_device())
 
 
