@@ -1,5 +1,7 @@
 import torch
+import transformers
 from transformers import AutoModelForCausalLM, AutoTokenizer, StoppingCriteria, StoppingCriteriaList
+
 
 class StopOnTokens(StoppingCriteria):
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
@@ -17,32 +19,47 @@ def init():
     global tokenizer
 
     # Flan-T5 version, if changed be sure to update in download.py too
-    tokenizer = AutoTokenizer.from_pretrained("stabilityai/stablelm-tuned-alpha-7b")
-    model = AutoModelForCausalLM.from_pretrained("stabilityai/stablelm-tuned-alpha-7b")
+    tokenizer = AutoTokenizer.from_pretrained("tiiuae/falcon-7b-instruct")
+    model = AutoModelForCausalLM.from_pretrained("tiiuae/falcon-7b-instruct")
     model.half().to(torch.cuda.current_device())
+
 
 # Inference is ran for every server call
 # Reference your preloaded global model variable here.
-def inference(model_inputs:dict) -> dict:
+def inference(model_inputs: dict) -> dict:
     global model
     global tokenizer
-    system_prompt = "" 
-    prompt = model_inputs.get('prompt', None)
-    if prompt == None:
-        return {'message': "No prompt provided"}
-    max_new_tokens= model_inputs.get('max_new_tokens', 64)
-    temperature= model_inputs.get('temperature', 0.7)
-    full_prompt = system_prompt + prompt
 
-    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-    tokens = model.generate(
-    **inputs,
-    max_new_tokens=max_new_tokens,
-    temperature=temperature,
-    do_sample=True,
-    stopping_criteria=StoppingCriteriaList([StopOnTokens()])
+    output = ""
+    # system_prompt = ""
+    prompt = model_inputs.get('prompt', None)
+    if prompt is None:
+        return {'message': "No prompt provided"}
+    # max_new_tokens= model_inputs.get('max_new_tokens', 64)
+    # temperature= model_inputs.get('temperature', 0.7)
+    # full_prompt = system_prompt + prompt
+
+    pipeline = transformers.pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        torch_dtype=torch.bfloat16,
+        trust_remote_code=True,
+        device_map="auto",
     )
-    result = {"output":tokenizer.decode(tokens[0], skip_special_tokens=True)}
+    sequences = pipeline(
+        prompt,
+        max_length=200,
+        do_sample=True,
+        top_k=10,
+        num_return_sequences=1,
+        eos_token_id=tokenizer.eos_token_id,
+    )
+    for seq in sequences:
+        print(f"Result: {seq['generated_text']}")
+        output += seq['generated_text']
+
+    result = {"output": output}
 
     # Return the results as a dictionary
     return result
