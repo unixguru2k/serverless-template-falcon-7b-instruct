@@ -5,7 +5,12 @@
 
 from sanic import Sanic, response
 import subprocess
+
+from sanic.worker.manager import WorkerManager
+
 import app as user_src
+
+WorkerManager.THRESHOLD = 600
 
 # Create the http server app
 server = Sanic("falcon_7b_instruct_inference_server")
