@@ -7,11 +7,11 @@ from sanic import Sanic, response
 import subprocess
 import app as user_src
 
-
 # Create the http server app
 server = Sanic("my_app")
 
 user_src.init()
+
 
 # Healthchecks verify that the environment is correct on Banana Serverless
 @server.route('/healthcheck', methods=["GET"])
@@ -19,13 +19,14 @@ def healthcheck(request):
     # dependency free way to check if GPU is visible
     gpu = False
     out = subprocess.run("nvidia-smi", shell=True)
-    if out.returncode == 0: # success state on shell command
+    if out.returncode == 0:  # success state on shell command
         gpu = True
 
     return response.json({"state": "healthy", "gpu": gpu})
 
+
 # Inference POST handler at '/' is called for every http call from Banana
-@server.route('/', methods=["POST"]) 
+@server.route('/', methods=["POST"])
 def inference(request):
     try:
         model_inputs = response.json.loads(request.json)
