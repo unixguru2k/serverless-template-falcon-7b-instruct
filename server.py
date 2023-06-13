@@ -8,7 +8,7 @@ import subprocess
 import app as user_src
 
 # Create the http server app
-server = Sanic("my_app")
+server = Sanic("falcon_7b_instruct_inference_server")
 
 user_src.init()
 
